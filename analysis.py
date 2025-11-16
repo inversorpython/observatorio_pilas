@@ -10,10 +10,16 @@ Meses = (
 )
 
 
-def date_list():
+def date_list(from_date = None, to_date = None):
     # Dejar fuera agosto porque distorsiona los datos.
-    to_date = datetime.now().date()
-    from_date = datetime.strptime("2025-8-28", "%Y-%m-%d").date()
+    if to_date is None:
+        to_date = datetime.now().date()
+    else:
+        to_date = datetime.strptime(to_date, "%Y-%m-%d").date()
+    if from_date is None:
+        from_date = datetime.strptime("2025-9-1", "%Y-%m-%d").date()
+    else:
+        from_date = datetime.strptime(from_date, "%Y-%m-%d").date()
     days_in_report = (to_date - from_date).days
     return [from_date + timedelta(i) for i in range(0, days_in_report)]
 
@@ -110,4 +116,77 @@ def dataframe_precios_medios_altas_bajas_mes(df):
 
     #return_df["Index"].apply(lambda cm.M)
 
+    return return_df
+
+
+def stats_cambio_de_precios(df):
+    dates = date_list(df["Fecha"].min(), df["Fecha"].max())
+    df_yesterday = df[df["Fecha"] == dates.pop(0)]
+    price_changes = list()
+    for date in dates:
+        df_today = df[df["Fecha"] == str(date)]
+        # print(f"{date}: {len(df_today)}")
+        id_yesterday = set(df_yesterday["Id"])
+        for today_row in df_today.itertuples():
+            if today_row.Id not in id_yesterday:
+                continue
+            df_row_yesterday = df_yesterday[df_yesterday['Id'] == today_row.Id]
+            # Tengo Ids en distintas entradas
+            #if len(df_row_yesterday) != 1:
+            #    print(f"Error. dfrow_yesterady {len(df_row_yesterday)}")
+            #    print(df_row_yesterday)
+            price_yesterday =  df_row_yesterday.iloc[0]['Precio']
+            price_today = today_row.Precio
+            if price_yesterday != price_today:
+                #print(f"Inmueble {today_row.Id} pasa de {df_row_yesterday['Precio']} a {today_row.Precio} en {date}.")
+                price_changes.append({"Id": today_row.Id,
+                                      'Precio original': price_yesterday,
+                                      'Precio nuevo': price_today,
+                                      'Diferencia precio': price_today - price_yesterday,
+                                      'Fecha': str(date)})
+        df_yesterday = df_today
+    return price_changes
+
+
+def dataframe_cambio_precios_mes(df):
+    data_df = list()
+    meses = df['Mes'].unique()
+    for mes in meses:
+        #print(mes)
+        df_mes = df[df["Mes"] == mes]
+        #print(f"df {len(df)} df_mes {len(df_mes)}")
+        #print(f"m_media_by_days(df): ", m_media_by_days(df_mes))
+        list_result = stats_cambio_de_precios(df_mes)
+        data_mes = list()
+        data_mes.append(mes)
+        data_mes.append(len(list_result)) # Num cambios de precio
+
+        # % anuncios cmabian
+        #print(f"len(list_result) {len(list_result)} / len(df_mes) {len(df_mes)}")
+        tmp = round(len(list_result) / m_media_by_days(df_mes), 2) * 100
+        data_mes.append(str(tmp)+"%")
+
+        tmp = filter(lambda x: x['Diferencia precio'] < 0, list_result)
+        decrease_changes = [x['Diferencia precio'] for x in tmp]
+        tmp = filter(lambda x: x['Diferencia precio'] > 0, list_result)
+        increase_changes = [x['Diferencia precio'] for x in tmp]
+        data_mes.append(len(decrease_changes)) # Rebaja
+        data_mes.append(len(increase_changes)) # Aumenta
+        if len(decrease_changes) > 0:
+            data_mes.append(round(sum(decrease_changes) / len(decrease_changes), 2)) # Media rebajas
+        else:
+            data_mes.append(0)  # Media rebajas
+        if len(increase_changes) > 0:
+            data_mes.append(round(sum(increase_changes) / len(increase_changes), 2)) # Media incremento
+        else:
+            data_mes.append(0)  # Media incremento
+        data_df.append(data_mes)
+    #print(data_df)
+    return_df = pd.DataFrame(data_df,
+                columns=["Mes", "Cambio precios",
+                         "% anuncios cambian", "Número de bajadas",
+                         "Número de subidas", "Media de bajada",
+                         "Media de subida"])
+    return_df["Mes"] = pd.Categorical(return_df["Mes"], categories=Meses, ordered=True)
+    return_df = return_df.sort_values("Mes")
     return return_df
