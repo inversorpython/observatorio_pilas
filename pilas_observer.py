@@ -46,7 +46,7 @@ def create_graph(df, line_columns, colors, x_column = "Mes", inverse = False):
 @st.cache_data
 def data():
     df_pilas = pd.read_csv("time_serie_pilas.csv")
-    return df_pilas
+    return df_pilas[df_pilas["Mes"] != "Agosto"]
 
 
 def st_header(df):
