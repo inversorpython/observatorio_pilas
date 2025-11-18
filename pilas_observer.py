@@ -43,7 +43,7 @@ def create_graph(df, line_columns, colors, x_column = "Mes", inverse = False):
     return chart
 
 
-@st.cache_data
+#@st.cache_data
 def data():
     df_pilas = pd.read_csv("time_serie_pilas.csv")
     return df_pilas[df_pilas["Mes"] != "Agosto"]
@@ -65,6 +65,8 @@ def st_header(df):
 
 df = a3.dataframe_precios_medios_altas_bajas_mes(data())
 st_header(df)
+
+# Númerod e anuncios por mes
 
 st.space(size="small")
 st.header(f"Número de anuncios por mes.", divider="gray")
@@ -93,7 +95,15 @@ st.subheader(f"", divider="gray")
 st.write("Resumen de datos de anuncios por mes.")
 st.table(data=df)
 
+# Días de venta
 
+st.space(size="small")
+st.header(f"Días en la plataforma.", divider="blue")
+df = a3.dataframe_dias_en_venta(data())
+st.table(data=df)
+st.text(body="Días hasta que el anuncio se da de baja definitivamente de la plataforma, probablemente por vender la propiedad.")
+
+# Cambios de precio por mes
 
 st.space(size="small")
 st.header(f"Cambios de precios por mes.", divider="violet")
@@ -116,6 +126,6 @@ st.table(data=df)
 
 
 st.subheader(f"", divider="rainbow")
-st.write("Última actualización: 17/11/2025.")
+st.write("Última actualización: 19/11/2025.")
 st.write("X / Twitter: @InversorPython")
 

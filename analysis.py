@@ -10,6 +10,10 @@ Meses = (
 )
 
 
+def dt(string_date):
+    return datetime.strptime(string_date, "%Y-%m-%d").date()
+
+
 def date_list(from_date = None, to_date = None):
     # Dejar fuera agosto porque distorsiona los datos.
     if to_date is None:
@@ -21,7 +25,19 @@ def date_list(from_date = None, to_date = None):
     else:
         from_date = datetime.strptime(from_date, "%Y-%m-%d").date()
     days_in_report = (to_date - from_date).days
-    return [from_date + timedelta(i) for i in range(0, days_in_report)]
+    return [from_date + timedelta(i) for i in range(0, days_in_report+1)]
+
+
+def range_dates_from(df_base):
+    date_from = dt(df_base["Fecha"].min())
+    #print(date_from)
+    date_to = datetime.strptime(df_base["Fecha"].max(), "%Y-%m-%d").date()
+    #print(date_to)
+    df_day = df_base[df_base["Fecha"] == str(date_from)]
+    #print(df_day["Fecha"])
+    id_yesterday = set(df_day["Id"].unique())
+    dates = [date_from + timedelta(i) for i in range(0, (date_to - date_from + timedelta(1)).days)]
+    return dates, id_yesterday
 
 
 def stat_altas_bajas(df_base):
@@ -190,3 +206,81 @@ def dataframe_cambio_precios_mes(df):
     return_df["Mes"] = pd.Categorical(return_df["Mes"], categories=Meses, ordered=True)
     return_df = return_df.sort_values("Mes")
     return return_df
+
+
+def stats_dias_en_venta(df_base):
+    """
+    Un id puede tener varias altas y bajas. Si al final iene un úmerod e dñías de 0 significa que ha encontrado un alta sin baja.
+    :param df_base:
+    :return:
+    """
+    id_dias_fechas = dict()
+    id_log = dict()
+
+    def add_alta(id_, fecha):
+        if id_ not in id_log:
+            id_log[id_] = [f"Alta:{str(fecha)}"]
+        else:
+            id_log[id_].append(f"Alta:{str(fecha)}")
+        if id_ not in id_dias_fechas:
+            id_dias_fechas[id_] = {'Fecha alta':fecha, 'Fecha baja': None, 'Dias': 0}
+        else:
+            if id_dias_fechas[id_]['Fecha alta'] is not None:
+                #print(f"Warning {id_} has a previous date { id_dias_fechas[id_]['Fecha alta']} than {fecha}")
+                id_dias_fechas[id_]['Fecha baja'] = None
+                id_dias_fechas[id_]['Dias'] = 0
+                return
+            id_dias_fechas[id_]['Fecha alta'] = fecha
+
+    def add_baja(id_, fecha, dias):
+        if id_ not in id_log:
+            id_log[id_] = [f"Baja:{str(fecha)}"]
+        else:
+            id_log[id_].append(f"Baja:{str(fecha)}")
+        if id_ not in id_dias_fechas:
+            id_dias_fechas[id_] = {'Fecha alta':None, 'Fecha baja': fecha, 'Dias': dias}
+        else:
+            id_dias_fechas[id_]['Fecha baja'] = fecha
+            id_dias_fechas[id_]['Dias'] = dias
+
+    dates, id_yesterday = range_dates_from(df_base)
+    df_today = df_base[df_base["Fecha"] == df_base['Fecha'].min()]
+    #print(f"Fecha origen {dates[0]} - {dates[-1]}")
+    for date in dates:
+        #print(str(date))
+        #df_yesterday = df_today
+        df_today = df_base[df_base["Fecha"] == str(date)]
+        #print(f"Today: {len(df_today)}")
+        #print(df_day)
+        id_today = set(df_today["Id"].unique())
+        #print(len(id_today))
+        altas = set(id_today) - set(id_yesterday)
+        for id_alta in altas:
+            add_alta(id_alta, date)
+        bajas = set(id_yesterday) - set(id_today)
+        for id_baja in bajas:
+            if id_baja not in id_dias_fechas:
+                continue
+            fecha_alta = id_dias_fechas[id_baja]['Fecha alta']
+            diff = date - fecha_alta
+            dias_venta = diff.days
+            if diff.seconds > 0:
+                dias_venta += 1
+            #print("Resta", dias_venta,"<<") # Es un timedelta
+            #id_dias[id_baja] = dias_venta
+            add_baja(id_baja, date, dias_venta)
+           # df_yesterday.loc[df_yesterday["Id"] == id_baja, 'Días en venta'] = dias_venta
+
+            #print(df_yesterday[df_yesterday["Id"] == id_baja]["Fecha alta"])
+
+        id_yesterday = id_today
+    return id_dias_fechas, id_log
+
+
+def dataframe_dias_en_venta(df):
+    dict_fechas_dias, _ = stats_dias_en_venta(df)
+    dict_latas_con_bajas = {k:v for k,v in dict_fechas_dias.items() if v['Fecha alta'] is not None and v['Fecha baja'] }
+    list_dias = [v['Dias'] for _,v in dict_latas_con_bajas.items()]
+    df_data = [round(sum(list_dias)/len(list_dias), 2), max(list_dias), min(list_dias)]
+    #print(df_data)
+    return pd.DataFrame((df_data,), columns=("Media días", "Máximo días", "Mínimo días"))
