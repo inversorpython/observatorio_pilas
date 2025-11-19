@@ -99,9 +99,26 @@ st.table(data=df)
 
 st.space(size="small")
 st.header(f"Días en la plataforma.", divider="blue")
-df = a3.dataframe_dias_en_venta(data())
-st.table(data=df)
-st.text(body="Días hasta que el anuncio se da de baja definitivamente de la plataforma, probablemente por vender la propiedad.")
+df = a3.dataframe_dias_en_venta_2(data())
+st.text(body="Días en la plataforma y fecha de bajas definitiva.")
+st.scatter_chart(df, x="Fecha baja", y="Dias")
+st.space(size="small")
+left_column, right_column = st.columns(2)
+with left_column:
+    a3.column_mes(df, "Fecha baja")
+    df_dias_meses = df.groupby("Mes")["Fecha baja"].count().to_frame("Días")
+    df_dias_meses = df_dias_meses.reset_index()
+    df_dias_meses = a3.sort_by(df_dias_meses)
+    st.text(body="Bajas definitivas de anuncios por mes.")
+    st.altair_chart(create_graph(df_dias_meses, ["Días"], ["#FF9896"]))
+
+with right_column:
+    st.text(body="Bajas definitivas de anuncios por mes.")
+    st.table(data=df_dias_meses)
+    st.space(size="small")
+    df = a3.dataframe_dias_en_venta(data())
+    st.text(body="Días hasta que el anuncio se da de baja definitivamente de la plataforma, probablemente por vender la propiedad.")
+    st.table(data=df)
 
 # Cambios de precio por mes
 

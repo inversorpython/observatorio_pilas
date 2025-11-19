@@ -10,6 +10,16 @@ Meses = (
 )
 
 
+def column_mes(df_p, column_name = "Fecha"):
+    df_p['Mes'] = df_p[column_name].apply(lambda x: Meses[x.month] if not pd.isna(x) else "")
+
+
+def sort_by(return_df):
+    return_df["Mes"] = pd.Categorical(return_df["Mes"], categories=Meses, ordered=True)
+    return_df = return_df.sort_values("Mes")
+    return return_df
+
+
 def dt(string_date):
     return datetime.strptime(string_date, "%Y-%m-%d").date()
 
@@ -279,8 +289,25 @@ def stats_dias_en_venta(df_base):
 
 def dataframe_dias_en_venta(df):
     dict_fechas_dias, _ = stats_dias_en_venta(df)
-    dict_latas_con_bajas = {k:v for k,v in dict_fechas_dias.items() if v['Fecha alta'] is not None and v['Fecha baja'] }
-    list_dias = [v['Dias'] for _,v in dict_latas_con_bajas.items()]
+    dict_altas_con_bajas = {k:v for k,v in dict_fechas_dias.items() if v['Fecha alta'] is not None and v['Fecha baja'] is not None and v['Dias'] > 1}
+    list_dias = [v['Dias'] for _,v in dict_altas_con_bajas.items()]
     df_data = [round(sum(list_dias)/len(list_dias), 2), max(list_dias), min(list_dias)]
     #print(df_data)
     return pd.DataFrame((df_data,), columns=("Media días", "Máximo días", "Mínimo días"))
+
+
+def dataframe_dias_en_venta_2(df):
+    dict_fechas_dias, dict_log = stats_dias_en_venta(df)
+    dict_altas_con_bajas = {k:v for k,v in dict_fechas_dias.items() if v['Fecha alta'] is not None and v['Fecha baja'] is not None and v['Dias'] > 1}
+    #df_dias_ventas = pd.DataFrame(dict_altas_con_bajas)
+    df_dias_ventas = pd.DataFrame.from_dict(dict_altas_con_bajas, orient='index').reset_index()
+    df_dias_ventas = df_dias_ventas.rename(columns={'index': 'Id'})
+    df_dias_ventas = df_dias_ventas.sort_values("Fecha baja")
+
+    # column_mes(df_dias_ventas, "Fecha baja")
+    #df_dias_meses = df_dias_ventas.groupby("Mes")["Fecha baja"].count().to_frame("Días")
+    #df_dias_meses = df_dias_meses.reset_index()
+    #print(df_dias_meses)
+
+    #return sort_by(df_dias_meses)
+    return df_dias_ventas
