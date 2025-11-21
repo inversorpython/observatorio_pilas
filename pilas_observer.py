@@ -43,9 +43,12 @@ def create_graph(df, line_columns, colors, x_column = "Mes", inverse = False):
     return chart
 
 
+def full_data():
+    return pd.read_csv("time_serie_pilas.csv")
+
 #@st.cache_data
 def data():
-    df_pilas = pd.read_csv("time_serie_pilas.csv")
+    df_pilas = full_data()
     return df_pilas[df_pilas["Mes"] != "Agosto"]
 
 
@@ -91,7 +94,7 @@ with right_column:
     #st.line_chart(df, x="Mes", y=["Precio m2 nuevos", "Precio m2 borrados"], color=["#2CA02C", "#98DF8A"])
     st.altair_chart(create_graph(df, ["Precio m2 nuevos", "Precio m2 borrados"], ["#2CA02C", "#98DF8A"]))
 
-st.subheader(f"", divider="gray")
+#st.subheader(f"", divider="gray")
 st.write("Resumen de datos de anuncios por mes.")
 st.table(data=df)
 
@@ -108,7 +111,7 @@ with left_column:
     a3.column_mes(df, "Fecha baja")
     df_dias_meses = df.groupby("Mes")["Fecha baja"].count().to_frame("Días")
     df_dias_meses = df_dias_meses.reset_index()
-    df_dias_meses = a3.sort_by(df_dias_meses)
+    df_dias_meses = a3.sort_by_month(df_dias_meses)
     st.text(body="Bajas definitivas de anuncios por mes.")
     st.altair_chart(create_graph(df_dias_meses, ["Días"], ["#FF9896"]))
 
@@ -137,12 +140,33 @@ with right_column:
     st.write("Bajada media en euros.")
     st.altair_chart(create_graph(df, ["Media de bajada"], ["#2CA02C"], inverse=True))
 
-st.subheader(f"", divider="violet")
+#st.subheader(f"", divider="violet")
 st.write("Resumen de datos de cambios de precio por mes.")
 st.table(data=df)
 
+# Inmuebles ocupados
+
+st.space(size="small")
+st.header(f"Anuncios de inmuebles ocupados (sin posesión).", divider="green")
+df = a3.dataframe_media_ocupadas(full_data())
+left_column, right_column = st.columns(2)
+with left_column:
+    st.text(body="Número de anuncios de inmuebles sin posesión por mes.")
+    st.altair_chart(create_graph(df, ["Número anuncios"], ["#2CA02C"]))
+
+with right_column:
+    st.text(body="Media de precios de inmuebles sin posesión por mes.")
+    st.altair_chart(create_graph(df, ["Media precio"], ["#98DF8A"]))
+
+#st.subheader(f"", divider="green")
+st.write("Resumen de datos de inmuebles ocupados.")
+st.table(data=df)
+# #", "#
+
+
+# Footer
 
 st.subheader(f"", divider="rainbow")
-st.write("Última actualización: 19/11/2025.")
+st.write("Última actualización: 23/11/2025.")
 st.write("X / Twitter: @InversorPython")
 

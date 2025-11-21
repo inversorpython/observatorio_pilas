@@ -14,7 +14,8 @@ def column_mes(df_p, column_name = "Fecha"):
     df_p['Mes'] = df_p[column_name].apply(lambda x: Meses[x.month] if not pd.isna(x) else "")
 
 
-def sort_by(return_df):
+def sort_by_month(return_df):
+    return_df.reset_index()
     return_df["Mes"] = pd.Categorical(return_df["Mes"], categories=Meses, ordered=True)
     return_df = return_df.sort_values("Mes")
     return return_df
@@ -128,8 +129,8 @@ def dataframe_precios_medios_altas_bajas_mes(df):
         data_df.append(data_mes)
     #print(data_df)
     return_df = pd.DataFrame(data_df, columns=["Mes", "Nuevos", "Borrados", "Precio medio nuevos", "Precio medio borrados", "Precio m2 nuevos", "Precio m2 borrados", "Media anuncios"])
-    return_df["Mes"] = pd.Categorical(return_df["Mes"], categories=Meses, ordered=True)
-    return_df = return_df.sort_values("Mes")
+    #return_df["Mes"] = pd.Categorical(return_df["Mes"], categories=Meses, ordered=True)
+    #return_df = return_df.sort_values("Mes")
 
 
     #return_df.set_index("Index")
@@ -142,7 +143,7 @@ def dataframe_precios_medios_altas_bajas_mes(df):
 
     #return_df["Index"].apply(lambda cm.M)
 
-    return return_df
+    return sort_by_month(return_df)
 
 
 def stats_cambio_de_precios(df):
@@ -213,9 +214,9 @@ def dataframe_cambio_precios_mes(df):
                          "% anuncios cambian", "Número de bajadas",
                          "Número de subidas", "Media de bajada",
                          "Media de subida"])
-    return_df["Mes"] = pd.Categorical(return_df["Mes"], categories=Meses, ordered=True)
-    return_df = return_df.sort_values("Mes")
-    return return_df
+    #return_df["Mes"] = pd.Categorical(return_df["Mes"], categories=Meses, ordered=True)
+    #return_df = return_df.sort_values("Mes")
+    return sort_by_month(return_df)
 
 
 def stats_dias_en_venta(df_base):
@@ -311,3 +312,38 @@ def dataframe_dias_en_venta_2(df):
 
     #return sort_by(df_dias_meses)
     return df_dias_ventas
+
+
+def dataframe_ocupadas(df):
+    df_filtrado = df[df["Tags"].notna()]
+    ocupadas_tag = set(df_filtrado[df_filtrado['Tags'].str.contains("ocupada")]['Id'])
+    ocupadas_desc = set(df[df['Descripción'].str.contains("ocupada")]['Id'])
+    ocupadas_posesion = set(df[df['Descripción'].str.contains("posesión")]["Id"])
+    ocupadas_id = ocupadas_tag | ocupadas_desc | ocupadas_posesion
+    df_list = list()
+    for id_ in ocupadas_id:
+        row_list = list()
+        row_list.append(id_)
+        row = df[df['Id'] == id_].iloc[0]
+        row_list.append(row['Fecha'])
+        row_list.append(row['Mes'])
+        row_list.append(row['Precio'])
+        df_list.append(row_list)
+
+    df_return = pd.DataFrame(df_list, columns=("Id", "Fecha", "Mes", "Precio"))
+    return sort_by_month(df_return)
+
+
+def dataframe_media_ocupadas(df):
+    df = dataframe_ocupadas(df)
+    meses = set(df['Mes'].unique())
+    df_list = list()
+    for mes in meses:
+        row_list = list()
+        row_list.append(mes)
+        df_mes = df[df['Mes'] == mes]
+        row_list.append(round(df_mes['Precio'].mean(), 2))
+        row_list.append(len(df_mes))
+        df_list.append(row_list)
+    df_return = pd.DataFrame(df_list, columns=("Mes", "Media precio", "Número anuncios"))
+    return sort_by_month(df_return)
