@@ -69,19 +69,17 @@ def st_header(df):
 df = a3.dataframe_precios_medios_altas_bajas_mes(data())
 st_header(df)
 
-# Númerod e anuncios por mes
+# Número de anuncios por mes
 
 st.space(size="small")
 st.header(f"Número de anuncios por mes.", divider="gray")
 st.write("Media de anuncios por mes.")
-#st.line_chart(df, x="Mes", y=["Media anuncios"], color=["#FF9896"])
 st.altair_chart(create_graph(df, ["Media anuncios"], ["#FF9896"]))
 st.space(size="small")
 
 left_column, center_column, right_column = st.columns(3)
 with left_column:
     st.write("Nuevos anuncios y anuncios borrados por mes.")
-    #st.line_chart(df, x="Mes", y=["Nuevos", "Borrados"], color=["#D62728", "#FF9896"])
     st.altair_chart(create_graph(df, ["Nuevos", "Borrados"], ["#D62728", "#FF9896"]))
 
 with center_column:
@@ -148,7 +146,7 @@ st.table(data=df)
 
 st.space(size="small")
 st.header(f"Anuncios de inmuebles ocupados (sin posesión).", divider="green")
-df = a3.dataframe_media_ocupadas(full_data())
+df = a3.dataframe_media_ocupadas_2(full_data())
 left_column, right_column = st.columns(2)
 with left_column:
     st.text(body="Número de anuncios de inmuebles sin posesión por mes.")
@@ -164,9 +162,35 @@ st.table(data=df)
 # #", "#
 
 
+# Tipos de inmuebles
+
+st.space(size="small")
+st.header(f"Tipos de inmuebles.", divider="blue")
+st.write("Próximamente.")
+
+# Poner el códig deld ef temp
+
 # Footer
 
 st.subheader(f"", divider="rainbow")
-st.write("Última actualización: 23/11/2025.")
+st.write("Última actualización: 26/11/2025.")
 st.write("X / Twitter: @InversorPython")
 
+
+def temp():
+    df = a3.dataframe_medias_mes_tipo_inmueble(data())
+
+    left_column, right_column = st.columns(2)
+    with left_column:
+        st.text(body="Número de anuncios por tipo de inmueble.")
+        st.altair_chart(create_graph(df, ["Pisos", "Casas", "Adosados", "Sin identificar"],
+                                     ["#4c72b0", "#dd8452", "#55a868"]))
+
+    with right_column:
+        st.text(body="Precio medio por tipo de inmueble.")
+        st.altair_chart(create_graph(df, ["Precio medio pisos", "Precio medio casas", "Precio medio adosados",
+                                          "Precio medio sin identificar"],
+                                     ["#6A5ACD", "#20B2AA", "#DB7093"]))
+
+    st.text(body="Resumen de tipos de inmuebles.")
+    st.table(data=df)

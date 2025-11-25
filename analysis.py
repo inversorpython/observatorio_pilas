@@ -313,37 +313,96 @@ def dataframe_dias_en_venta_2(df):
     #return sort_by(df_dias_meses)
     return df_dias_ventas
 
-
-def dataframe_ocupadas(df):
+def id_ocupadas(df):
     df_filtrado = df[df["Tags"].notna()]
     ocupadas_tag = set(df_filtrado[df_filtrado['Tags'].str.contains("ocupada")]['Id'])
     ocupadas_desc = set(df[df['Descripción'].str.contains("ocupada")]['Id'])
     ocupadas_posesion = set(df[df['Descripción'].str.contains("posesión")]["Id"])
     ocupadas_id = ocupadas_tag | ocupadas_desc | ocupadas_posesion
-    df_list = list()
-    for id_ in ocupadas_id:
-        row_list = list()
-        row_list.append(id_)
-        row = df[df['Id'] == id_].iloc[0]
-        row_list.append(row['Fecha'])
-        row_list.append(row['Mes'])
-        row_list.append(row['Precio'])
-        df_list.append(row_list)
-
-    df_return = pd.DataFrame(df_list, columns=("Id", "Fecha", "Mes", "Precio"))
-    return sort_by_month(df_return)
+    return ocupadas_id
 
 
-def dataframe_media_ocupadas(df):
-    df = dataframe_ocupadas(df)
+def dataframe_media_ocupadas_2(df):
+
+    def _create_df(mes, df_):
+        df_list = list()
+        for id_ in ocupadas_id:
+            row_list = list()
+            row_list.append(id_)
+            selection = df_[df_['Id'] == id_]
+            if len(selection) == 0:
+                continue
+            row = selection.iloc[0]
+            row_list.append(row['Fecha'])
+            row_list.append(mes)
+            row_list.append(row['Precio'])
+            df_list.append(row_list)
+
+        return pd.DataFrame(df_list, columns=("Id", "Fecha", "Mes", "Precio"))
+
+
+    ocupadas_id = id_ocupadas(df)
+    #df = dataframe_ocupadas(df)
     meses = set(df['Mes'].unique())
     df_list = list()
     for mes in meses:
         row_list = list()
         row_list.append(mes)
-        df_mes = df[df['Mes'] == mes]
+        df_mes = _create_df(mes, df[df['Mes'] == mes])
         row_list.append(round(df_mes['Precio'].mean(), 2))
         row_list.append(len(df_mes))
         df_list.append(row_list)
     df_return = pd.DataFrame(df_list, columns=("Mes", "Media precio", "Número anuncios"))
     return sort_by_month(df_return)
+
+
+# Tipos de inmuebles
+
+def dataframe_tipo_de_inmueble(df_):
+    """
+    Fnca se considera casa
+    Ático se considera piso
+    Devuelve coia deld ataframe de entrada con una nueva columna 'Tipo'
+    :param df_:
+    :return:
+    """
+    df_ = df_.copy() # Aún con el loc, si no copio primero tengo el error del slice
+    df_.loc[:, "Tipo"] = "Sin identificar"
+
+    df_.loc[(df_['Dirección'].str.contains(r"piso|ático", case=False, na=False)), "Tipo"] = "Piso"
+    #ids = set(df_[df_['Tipo'] == "Piso"]['Id'].unique())
+    ids = set()
+
+    #df_.loc[(df_['Dirección'].str.contains("independiente") | df_['Dirección'].str.contains("casa") | df_['Dirección'].str.contains("finca"))
+    #    & ~df_["Id"].isin(ids), "Tipo"] = "Casa"
+    df_.loc[(df_['Dirección'].str.contains(r"independiente|casa|finca", case = False, na=False))
+            , "Tipo"] = "Casa"
+
+    #ids = ids | set(df_[df_['Tipo'] == "Casa"]['Id'].unique())
+
+    df_.loc[(df_['Dirección'].str.contains(r"pareado|pareada|adosado|adosada", case=False, na=False))
+        , "Tipo"] = "Adosado / pareado"
+    #& (~df_["Id"].isin(ids))
+
+    return df_
+
+
+def dataframe_medias_mes_tipo_inmueble(df_):
+    df_ = dataframe_tipo_de_inmueble(df_)
+    df_ = df_.drop_duplicates(subset=["Id"])
+    data_df = list()
+    for mes in df_['Mes'].unique():
+        row_list = list()
+        row_list.append(mes)
+        df_mes = df_[df_['Mes'] == mes]
+        df_gb_count = df_mes.groupby("Tipo")['Id'].count()
+        df_gb_price = df_mes.groupby("Tipo")['Precio'].mean()
+        #print(df_gb_count)
+        #print(df_gb_price)
+        for index in range(0, 4):
+            #print(index)
+            row_list.append(df_gb_count.iloc[index])
+            row_list.append(df_gb_price.iloc[index].round(2))
+        data_df.append(row_list)
+    return sort_by_month(pd.DataFrame(data_df, columns = ("Mes", "Pisos", "Precio medio pisos", "Casas", "Precio medio casas", "Adosados", "Precio medio adosados", "Sin identificar", "Precio medio sin identificar")))
+
