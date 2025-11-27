@@ -363,6 +363,7 @@ def dataframe_tipo_de_inmueble(df_):
     Fnca se considera casa
     Ático se considera piso
     Devuelve coia deld ataframe de entrada con una nueva columna 'Tipo'
+    To-Do esta clasificación funcona bien, suma más inmuebles de los que hay n realidad.
     :param df_:
     :return:
     """
@@ -370,31 +371,33 @@ def dataframe_tipo_de_inmueble(df_):
     df_.loc[:, "Tipo"] = "Sin identificar"
 
     df_.loc[(df_['Dirección'].str.contains(r"piso|ático", case=False, na=False)), "Tipo"] = "Piso"
-    #ids = set(df_[df_['Tipo'] == "Piso"]['Id'].unique())
-    ids = set()
+    ids = set(df_[df_['Tipo'] == "Piso"]['Id'].unique())
+    #ids = set()
 
-    #df_.loc[(df_['Dirección'].str.contains("independiente") | df_['Dirección'].str.contains("casa") | df_['Dirección'].str.contains("finca"))
-    #    & ~df_["Id"].isin(ids), "Tipo"] = "Casa"
     df_.loc[(df_['Dirección'].str.contains(r"independiente|casa|finca", case = False, na=False))
-            , "Tipo"] = "Casa"
+        & (~df_["Id"].isin(ids)), "Tipo"] = "Casa"
+    #df_.loc[(df_['Dirección'].str.contains(r"independiente|casa|finca", case = False, na=False))
+    #        , "Tipo"] = "Casa"
 
-    #ids = ids | set(df_[df_['Tipo'] == "Casa"]['Id'].unique())
+    ids = ids | set(df_[df_['Tipo'] == "Casa"]['Id'].unique())
 
     df_.loc[(df_['Dirección'].str.contains(r"pareado|pareada|adosado|adosada", case=False, na=False))
+            & (~df_["Id"].isin(ids))
         , "Tipo"] = "Adosado / pareado"
-    #& (~df_["Id"].isin(ids))
+
+    #print(len(ids))
 
     return df_
 
 
 def dataframe_medias_mes_tipo_inmueble(df_):
     df_ = dataframe_tipo_de_inmueble(df_)
-    df_ = df_.drop_duplicates(subset=["Id"])
     data_df = list()
     for mes in df_['Mes'].unique():
         row_list = list()
         row_list.append(mes)
         df_mes = df_[df_['Mes'] == mes]
+        df_mes = df_mes.drop_duplicates(subset=["Id"])
         df_gb_count = df_mes.groupby("Tipo")['Id'].count()
         df_gb_price = df_mes.groupby("Tipo")['Precio'].mean()
         #print(df_gb_count)
