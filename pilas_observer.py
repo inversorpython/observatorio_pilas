@@ -185,6 +185,6 @@ st.table(data=df)
 # Footer
 
 st.subheader(f"", divider="rainbow")
-st.write("Última actualización: 26/11/2025.")
+st.write("Última actualización: 6/12/2025.")
 st.write("X / Twitter: @InversorPython")
 
