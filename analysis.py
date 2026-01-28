@@ -1,14 +1,11 @@
 import pandas as pd
 from datetime import datetime, timedelta
 
-
 Meses = (
-    '',
-    'Enero', 'Febrero', 'Marzo', 'Abril',
-    'Mayo', 'Junio', 'Julio', 'Agosto',
-    'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+    "", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+    "Enero", "Febrero", "Marzo", "Abril",
+    "Mayo", "Junio", "Julio", "Agosto"
 )
-
 
 def column_mes(df_p, column_name = "Fecha"):
     df_p['Mes'] = df_p[column_name].apply(lambda x: Meses[x.month] if not pd.isna(x) else "")
